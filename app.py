@@ -8,10 +8,9 @@ APOLLO_KEY  = os.environ.get("APOLLO_API_KEY", "I8cuKc9ZLzarxdjY8rjdOA")
 APOLLO_BASE = "https://api.apollo.io/v1"
 HEADERS     = {"X-Api-Key": APOLLO_KEY, "Content-Type": "application/json"}
 
-LIST_ID     = "69c423ebe5c9a9000d5efe04"
-PIPELINE_ID = "699355284e6cb30021f9f0dd"
+LIST_ID      = "69c423ebe5c9a9000d5efe04"
+PIPELINE_IDS = ["699355284e6cb30021f9f0dd", "69c28505e83e94001d9b36a9"]  # Pré Vendas + Vendas
 
-# Simple in-memory cache (ttl = 1 hour)
 _cache = {}
 CACHE_TTL = 3600
 
@@ -56,10 +55,8 @@ def fetch_page(endpoint, base_body, result_key, per_page, page):
     return data.get(result_key, []), data.get("pagination", {})
 
 def fetch_all_parallel(endpoint, base_body, result_key, per_page=50):
-    """Fetch first page to get total_pages, then fetch remaining pages in parallel."""
     items, pagination = fetch_page(endpoint, base_body, result_key, per_page, 1)
     total_pages = pagination.get("total_pages", 1)
-
     if total_pages > 1:
         with ThreadPoolExecutor(max_workers=5) as ex:
             futures = [
@@ -91,12 +88,29 @@ def api_deals():
     cached = cache_get("deals")
     if cached:
         return jsonify(cached)
-    deals = fetch_all_parallel(
-        "opportunities/search", {"pipeline_ids": [PIPELINE_ID]}, "opportunities", per_page=25
-    )
-    result = {"opportunities": deals, "total": len(deals)}
+    # Busca os 2 pipelines em paralelo
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        futures = [
+            ex.submit(fetch_all_parallel, "opportunities/search",
+                      {"pipeline_ids": [pid]}, "opportunities", 25)
+            for pid in PIPELINE_IDS
+        ]
+        all_deals = []
+        for f in futures:
+            all_deals.extend(f.result())
+    result = {"opportunities": all_deals, "total": len(all_deals)}
     cache_set("deals", result)
     return jsonify(result)
+
+
+@app.route("/api/pipelines")
+def api_pipelines():
+    cached = cache_get("pipelines")
+    if cached:
+        return jsonify(cached)
+    data = apollo_get("opportunity_pipelines")
+    cache_set("pipelines", data)
+    return jsonify(data)
 
 
 @app.route("/api/stages")
