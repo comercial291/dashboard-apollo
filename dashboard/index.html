@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dashboard Route Sales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #f8f9fa;
+  --primary: #2563eb;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --radius: 12px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; font-size: 14px; }
+
+/* MAIN */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; width: 100%; }
+.topbar { background: #fff; border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.topbar-left { display: flex; align-items: center; gap: 14px; }
+.topbar-logo { width: 36px; height: 36px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 16px; }
+.topbar h1 { font-size: 20px; font-weight: 800; color: var(--text); }
+.topbar small { display: block; font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.topbar-actions { display: flex; align-items: center; gap: 12px; }
+.topbar-refresh { display: flex; align-items: center; gap: 6px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 6px 12px; }
+.refresh-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite; }
+.btn-refresh { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: .2s; }
+.btn-refresh:hover { background: #1d4ed8; }
+.loading-bar { height: 3px; background: linear-gradient(90deg, var(--primary) 0%, #60a5fa 50%, var(--primary) 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; display: none; }
+.loading-bar.show { display: block; }
+
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.35} }
+@keyframes shimmer { 0%{background-position:200% 0}100%{background-position:-200% 0} }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ERROR */
+.error-bar { background: #fef2f2; border-bottom: 1px solid #fca5a5; color: #dc2626; padding: 10px 28px; font-size: 13px; display: none; align-items: center; gap: 8px; }
+.error-bar.show { display: flex; }
+
+/* TABS */
+.tabs { display: flex; gap: 2px; padding: 0 28px; background: #fff; border-bottom: 1px solid var(--border); flex-shrink: 0; overflow-x: auto; }
+.tab-btn { padding: 13px 18px; border: none; background: transparent; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap; transition: .2s; font-family: inherit; }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-btn:hover:not(.active) { color: var(--text); background: #f8f9fa; }
+
+/* CONTENT */
+.content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* CARDS */
+.card { background: var(--card); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 20px; }
+
+/* KPI */
+.kpi-row { display: grid; gap: 14px; margin-bottom: 20px; }
+.kpi-row.cols-5 { grid-template-columns: repeat(5, 1fr); }
+.kpi-row.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.kpi-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.kpi-row.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.kcard { background: var(--card); border-radius: var(--radius); padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); border-top: 3px solid var(--primary); }
+.kcard.success { border-top-color: var(--success); }
+.kcard.danger  { border-top-color: var(--danger); }
+.kcard.warning { border-top-color: var(--warning); }
+.kcard.neutral { border-top-color: var(--text-secondary); }
+.kcard-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--text-secondary); margin-bottom: 8px; }
+.kcard-value { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1.1; }
+.kcard-sub   { font-size: 11px; color: var(--text-secondary); margin-top: 5px; }
+
+/* SECTION HEADER */
+.section-hdr { font-size: 15px; font-weight: 700; color: var(--text); margin: 24px 0 14px; display: flex; align-items: center; gap: 10px; }
+.section-hdr::before { content:''; display:inline-block; width:4px; height:18px; background: var(--primary); border-radius: 2px; }
+
+/* CHARTS */
+.chart-row { display: grid; gap: 16px; margin-bottom: 20px; }
+.chart-row.cols-2 { grid-template-columns: 1fr 1fr; }
+.chart-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.chart-box { background: var(--card); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 20px; }
+.chart-box-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.chart-box-sub   { font-size: 11px; color: var(--text-secondary); margin-bottom: 16px; }
+.chart-canvas-wrap { position: relative; }
+.section-group { margin-bottom: 28px; }
+
+/* TABLES */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th { text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-secondary); border-bottom: 2px solid var(--border); }
+.data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: #f8f9fa; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+.badge-green  { background: #dcfce7; color: #16a34a; }
+.badge-blue   { background: #dbeafe; color: #1d4ed8; }
+.badge-orange { background: #fff7ed; color: #c2410c; }
+.badge-gray   { background: #f1f5f9; color: #475569; }
+
+/* FUNNEL */
+.funnel-stage-row { display: flex; align-items: center; margin-bottom: 8px; gap: 12px; }
+.funnel-bar-wrap  { flex: 1; background: #f1f5f9; border-radius: 6px; height: 32px; overflow: hidden; }
+.funnel-bar-fill  { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; font-size: 12px; font-weight: 700; color: #fff; transition: width .6s ease; min-width: 3%; }
+.funnel-stage-name { font-size: 13px; font-weight: 600; min-width: 160px; color: var(--text); }
+.funnel-stage-count{ font-size: 13px; font-weight: 700; min-width: 40px; text-align: right; }
+
+/* HBAR */
+.hbar-item  { margin-bottom: 12px; }
+.hbar-meta  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.hbar-name  { font-size: 12px; color: var(--text); font-weight: 500; }
+.hbar-stats { font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+.hbar-track { background: #f1f5f9; border-radius: 6px; height: 22px; overflow: hidden; }
+.hbar-fill  { height: 100%; border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; transition: width .5s ease; min-width: 3%; }
+.hbar-label-in { font-size: 10px; color: #fff; font-weight: 700; }
+
+/* PERIOD BAR */
+.periodo-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.periodo-label { font-size: 11px; font-weight: 700; color: var(--text-secondary); letter-spacing: .5px; }
+.periodo-btn { padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--card); color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer; transition: .2s; font-family: inherit; }
+.periodo-btn:hover  { border-color: var(--primary); color: var(--primary); }
+.periodo-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* EMPTY */
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text-secondary); }
+.empty-state p { font-size: 14px; font-weight: 500; }
+
+/* RESPONSIVE */
+@media (max-width: 1200px) {
+  .kpi-row.cols-5 { grid-template-columns: repeat(3, 1fr); }
+  .kpi-row.cols-4 { grid-template-columns: repeat(2, 1fr); }
+  .chart-row.cols-3 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 800px) {
+  .kpi-row.cols-5, .kpi-row.cols-4, .kpi-row.cols-3 { grid-template-columns: repeat(2, 1fr); }
+  .chart-row.cols-2, .chart-row.cols-3 { grid-template-columns: 1fr; }
+  .content { padding: 16px; }
+  .topbar  { padding: 12px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay" style="position:fixed;inset:0;background:rgba(248,249,250,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px">
+  <div style="width:48px;height:48px;border:4px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <div style="font-size:15px;font-weight:600;color:#1e3a5f" id="overlayMsg">Carregando dados do Apollo…</div>
+  <div style="font-size:12px;color:#94a3b8" id="overlaySub">Buscando contatos, deals e sequências</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">RS</div>
+      <div>
+        <h1>Dashboard Route Sales</h1>
+        <small id="lastUpdate">Carregando…</small>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="topbar-refresh">
+        <span class="refresh-dot"></span>
+        <span style="font-size:12px;color:#64748b">Próxima atualização: </span>
+        <span id="refreshCountdown" style="font-size:12px;font-weight:700;color:#1e3a5f;min-width:52px">2:00:00</span>
+      </div>
+      <button class="btn-refresh" onclick="forceRefresh()">↺ Atualizar</button>
+    </div>
+  </div>
+  <div class="loading-bar" id="loadingBar"></div>
+  <div class="error-bar" id="errorBar">⚠ <span id="errorMsg"></span></div>
+
+  <div class="tabs" id="tabsBar">
+    <button class="tab-btn active" onclick="switchTab(0)">Visão Geral</button>
+    <button class="tab-btn" onclick="switchTab(1)">Prospecção</button>
+    <button class="tab-btn" onclick="switchTab(2)">Pipeline</button>
+    <button class="tab-btn" onclick="switchTab(3)">Sequências</button>
+    <button class="tab-btn" onclick="switchTab(4)">Contatos</button>
+  </div>
+
+  <div class="content">
+
+    <!-- TAB 0: VISÃO GERAL -->
+    <div class="tab-panel active" id="tab-0">
+      <div class="kpi-row cols-5" id="kpiGeral"></div>
+
+      <div class="section-group">
+        <div class="section-hdr">Prospecção por Mês</div>
+        <div class="chart-box">
+          <div class="chart-box-sub">Contatos adicionados à lista Route Sales nos últimos 12 meses</div>
+          <div class="chart-canvas-wrap" style="height:260px"><canvas id="chartProspMes"></canvas></div>
+        </div>
+      </div>
+
+      <div class="chart-row cols-2">
+        <div class="section-group" style="margin:0">
+          <div class="section-hdr">Deals por Etapa</div>
+          <div class="chart-box">
+            <div id="funnelSimples"></div>
+          </div>
+        </div>
+        <div class="section-group" style="margin:0">
+          <div class="section-hdr">Top Cargos Prospectados</div>
+          <div class="chart-box">
+            <div id="hbarCargos"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 1: PROSPECÇÃO -->
+    <div class="tab-panel" id="tab-1">
+      <div class="periodo-bar">
+        <span class="periodo-label">Período:</span>
+        <button class="periodo-btn" onclick="setPeriodProsp(30,this)">30d</button>
+        <button class="periodo-btn active" onclick="setPeriodProsp(90,this)">90d</button>
+        <button class="periodo-btn" onclick="setPeriodProsp(180,this)">6m</button>
+        <button class="periodo-btn" onclick="setPeriodProsp(365,this)">1 ano</button>
+        <button class="periodo-btn" onclick="setPeriodProsp(0,this)">Tudo</button>
+      </div>
+
+      <div class="kpi-row cols-4" id="kpiProsp"></div>
+
+      <div class="section-group">
+        <div class="section-hdr">Contatos Adicionados por Mês</div>
+        <div class="chart-box">
+          <div class="chart-canvas-wrap" style="height:280px"><canvas id="chartProspMesDetail"></canvas></div>
+        </div>
+      </div>
+
+      <div class="chart-row cols-2">
+        <div class="chart-box">
+          <div class="chart-box-title">Distribuição por Cargo</div>
+          <div class="chart-box-sub">Top cargos dos contatos prospectados</div>
+          <div class="chart-canvas-wrap" style="height:300px"><canvas id="chartCargos"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-box-title">Top Empresas Prospectadas</div>
+          <div class="chart-box-sub">Empresas com mais contatos na lista</div>
+          <div id="hbarEmpresas" style="padding-top:8px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: PIPELINE -->
+    <div class="tab-panel" id="tab-2">
+      <div class="kpi-row cols-4" id="kpiPipeline"></div>
+
+      <div class="section-group">
+        <div class="section-hdr">Funil de Deals — Route Sales</div>
+        <div class="chart-box" style="padding: 24px">
+          <div id="funnelDeals"></div>
+        </div>
+      </div>
+
+      <div class="section-group">
+        <div class="section-hdr">Deals por Etapa — Detalhado</div>
+        <div class="chart-box">
+          <div class="chart-canvas-wrap" style="height:280px"><canvas id="chartDealsEtapa"></canvas></div>
+        </div>
+      </div>
+
+      <div class="section-group">
+        <div class="section-hdr">Tabela de Deals</div>
+        <div class="card" style="overflow-x:auto">
+          <table class="data-table" id="tableDeals"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: SEQUÊNCIAS -->
+    <div class="tab-panel" id="tab-3">
+      <div class="kpi-row cols-4" id="kpiSeq"></div>
+
+      <div class="section-group">
+        <div class="section-hdr">Performance das Sequências</div>
+        <div class="card" style="overflow-x:auto">
+          <table class="data-table" id="tableSeq"></table>
+        </div>
+      </div>
+
+      <div class="section-group">
+        <div class="section-hdr">Taxa de Abertura e Resposta</div>
+        <div class="chart-box">
+          <div class="chart-canvas-wrap" style="height:280px"><canvas id="chartSeqPerf"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: CONTATOS -->
+    <div class="tab-panel" id="tab-4">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+        <input type="text" id="searchContatos" placeholder="Buscar por nome, cargo ou empresa…"
+          oninput="renderTabelaContatos()"
+          style="border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;width:320px;outline:none"/>
+        <span id="countContatos" style="font-size:12px;color:var(--text-secondary)"></span>
+      </div>
+      <div class="card" style="overflow-x:auto">
+        <table class="data-table" id="tableContatos"></table>
+      </div>
+      <div id="paginationContatos" style="margin-top:12px;display:flex;gap:8px;justify-content:center"></div>
+    </div>
+
+  </div><!-- end content -->
+</div>
+
+<script src="chart.min.js"></script>
+<script>
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let allContacts   = [];
+let allDeals      = [];
+let allSequences  = [];
+let stageMap      = {};   // id -> {name, is_won, is_closed}
+let activeTab     = 0;
+let prospDays     = 90;
+let chartsReg     = {};
+let contatoPage   = 1;
+const PAGE_SIZE   = 50;
+
+// ─── UTILS ──────────────────────────────────────────────────────────────────
+function fmtNum(v) { return (v || 0).toLocaleString('pt-BR'); }
+function fmtPct(v) { return (+(v||0)).toFixed(1) + '%'; }
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('pt-BR');
+}
+function getMonthKey(d) {
+  if (!d) return null;
+  const dt = new Date(d);
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+}
+function getMonthLabel(key) {
+  if (!key) return '';
+  const [y, m] = key.split('-');
+  const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return months[parseInt(m)-1] + '/' + y.slice(2);
+}
+function lastNMonths(n) {
+  const keys = [];
+  const now = new Date();
+  for (let i = n-1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    keys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  return keys;
+}
+function destroyChart(id) {
+  if (chartsReg[id]) { chartsReg[id].destroy(); delete chartsReg[id]; }
+}
+function kcard(label, value, sub, type='') {
+  return `<div class="kcard ${type}"><div class="kcard-label">${label}</div><div class="kcard-value">${value}</div><div class="kcard-sub">${sub || '&nbsp;'}</div></div>`;
+}
+function showLoading(s) { document.getElementById('loadingBar').classList.toggle('show', s); }
+function showError(msg) {
+  const el = document.getElementById('errorBar');
+  if (msg) { document.getElementById('errorMsg').textContent = msg; el.classList.add('show'); }
+  else el.classList.remove('show');
+}
+function hideOverlay() { const el = document.getElementById('loadingOverlay'); if (el) el.style.display = 'none'; }
+function setOverlay(msg, sub) {
+  const a = document.getElementById('overlayMsg'), b = document.getElementById('overlaySub');
+  if (a) a.textContent = msg; if (b) b.textContent = sub || '';
+}
+
+// ─── FETCH ──────────────────────────────────────────────────────────────────
+async function fetchJSON(url) {
+  const r = await fetch(url, { signal: AbortSignal.timeout(60000) });
+  if (!r.ok) throw new Error(`HTTP ${r.status} — ${url}`);
+  return r.json();
+}
+
+async function wakeServer() {
+  const deadline = Date.now() + 90000;
+  while (Date.now() < deadline) {
+    try {
+      const r = await fetch('/ping', { signal: AbortSignal.timeout(10000) });
+      if (r.ok) return;
+    } catch(_) {}
+    await new Promise(r => setTimeout(r, 3000));
+  }
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+async function init() {
+  showLoading(true);
+  showError('');
+  await wakeServer();
+  setOverlay('Buscando contatos da lista Route Sales…', 'Isso pode levar alguns segundos');
+  try {
+    const [contData, dealData, seqData, stagesData] = await Promise.all([
+      fetchJSON('/api/contacts'),
+      fetchJSON('/api/deals'),
+      fetchJSON('/api/sequences'),
+      fetchJSON('/api/stages')
+    ]);
+    allContacts  = contData.contacts  || [];
+    allDeals     = dealData.opportunities || [];
+    allSequences = (seqData.emailer_campaigns || seqData.campaigns || []);
+    // Build stage ID -> name map
+    stageMap = {};
+    (stagesData.opportunity_stages || []).forEach(s => { stageMap[s.id] = s; });
+
+    document.getElementById('lastUpdate').textContent =
+      'Atualizado em ' + new Date().toLocaleTimeString('pt-BR') +
+      ' · ' + allContacts.length + ' contatos · ' + allDeals.length + ' deals';
+
+    renderAll();
+    startTimer();
+    hideOverlay();
+  } catch(e) {
+    hideOverlay();
+    showError('Erro ao carregar dados: ' + e.message);
+    console.error(e);
+  }
+  showLoading(false);
+}
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+function switchTab(i) {
+  activeTab = i;
+  document.querySelectorAll('.tab-panel').forEach((p, j) => p.classList.toggle('active', i === j));
+  document.querySelectorAll('.tab-btn').forEach((b, j) => b.classList.toggle('active', i === j));
+}
+
+// ─── PERIOD (PROSPECÇÃO) ─────────────────────────────────────────────────────
+function setPeriodProsp(days, btn) {
+  prospDays = days;
+  document.querySelectorAll('.periodo-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderProspeccao();
+}
+
+function contactsInPeriod() {
+  if (!prospDays) return allContacts;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - prospDays);
+  return allContacts.filter(c => {
+    const d = new Date(c.created_at || c.contact_created_at || 0);
+    return d >= cutoff;
+  });
+}
+
+// ─── RENDER ALL ──────────────────────────────────────────────────────────────
+function renderAll() {
+  renderVisaoGeral();
+  renderProspeccao();
+  renderPipeline();
+  renderSequencias();
+  renderTabelaContatos();
+}
+
+// ─── TAB 0: VISÃO GERAL ──────────────────────────────────────────────────────
+function renderVisaoGeral() {
+  const total    = allContacts.length;
+  const deals    = allDeals.length;
+  const dealsOpen= allDeals.filter(d => dealStatus(d) === 'open').length;
+  const sequences= allSequences.length;
+
+  // contacts added this month
+  const thisMonth = getMonthKey(new Date().toISOString());
+  const thisMo = allContacts.filter(c => getMonthKey(c.created_at || c.contact_created_at) === thisMonth).length;
+
+  document.getElementById('kpiGeral').innerHTML =
+    kcard('Contatos Prospectados', fmtNum(total), 'na lista Route Sales', '') +
+    kcard('Adicionados este mês', fmtNum(thisMo), 'novos contatos', 'success') +
+    kcard('Deals Abertos', fmtNum(dealsOpen), 'no pipeline Route Sales', '') +
+    kcard('Total de Deals', fmtNum(deals), 'criados no Apollo', 'neutral') +
+    kcard('Sequências Ativas', fmtNum(sequences), 'campanhas de email', 'warning');
+
+  // Prospecção por mês (últimos 12 meses)
+  const months = lastNMonths(12);
+  const counts = months.map(m => allContacts.filter(c => getMonthKey(c.created_at || c.contact_created_at) === m).length);
+  destroyChart('chartProspMes');
+  const ctx = document.getElementById('chartProspMes').getContext('2d');
+  chartsReg['chartProspMes'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: months.map(getMonthLabel),
+      datasets: [{
+        label: 'Contatos adicionados',
+        data: counts,
+        backgroundColor: 'rgba(37,99,235,0.7)',
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Funil simples
+  renderFunnelSimples('funnelSimples');
+
+  // Top cargos
+  renderHbarCargos('hbarCargos', allContacts);
+}
+
+// ─── TAB 1: PROSPECÇÃO ───────────────────────────────────────────────────────
+function renderProspeccao() {
+  const contacts = contactsInPeriod();
+  const total    = contacts.length;
+
+  // empresas únicas
+  const empresasSet = new Set(contacts.map(c => c.organization_name || c.account?.name).filter(Boolean));
+  const numEmpresas = empresasSet.size;
+
+  // cargos
+  const cargoMap = {};
+  contacts.forEach(c => {
+    const t = (c.title || 'Sem cargo').split('\n')[0].trim();
+    cargoMap[t] = (cargoMap[t] || 0) + 1;
+  });
+  const numCargos = Object.keys(cargoMap).length;
+
+  // média mensal
+  const months = lastNMonths(12);
+  const counts = months.map(m => contacts.filter(c => getMonthKey(c.created_at || c.contact_created_at) === m).length);
+  const avg = counts.reduce((a,b) => a+b, 0) / (counts.filter(v=>v>0).length || 1);
+
+  document.getElementById('kpiProsp').innerHTML =
+    kcard('Contatos', fmtNum(total), 'no período selecionado', '') +
+    kcard('Empresas', fmtNum(numEmpresas), 'organizações únicas', 'success') +
+    kcard('Cargos Distintos', fmtNum(numCargos), 'títulos diferentes', 'neutral') +
+    kcard('Média Mensal', avg.toFixed(1), 'contatos/mês (período)', 'warning');
+
+  // Chart por mês
+  destroyChart('chartProspMesDetail');
+  const ctx = document.getElementById('chartProspMesDetail').getContext('2d');
+  chartsReg['chartProspMesDetail'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: months.map(getMonthLabel),
+      datasets: [{
+        label: 'Contatos adicionados',
+        data: counts,
+        backgroundColor: counts.map(() => 'rgba(37,99,235,0.7)'),
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `${ctx.raw} contatos` } }
+      },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Chart cargos (doughnut)
+  const topCargos = Object.entries(cargoMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const COLORS = ['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#84cc16'];
+  destroyChart('chartCargos');
+  const ctx2 = document.getElementById('chartCargos').getContext('2d');
+  chartsReg['chartCargos'] = new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: topCargos.map(([k])=>k.length>30?k.slice(0,30)+'…':k),
+      datasets: [{ data: topCargos.map(([,v])=>v), backgroundColor: COLORS, borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12 } }
+      }
+    }
+  });
+
+  // Top empresas hbar
+  const empMap = {};
+  contacts.forEach(c => {
+    const e = c.organization_name || c.account?.name;
+    if (e) empMap[e] = (empMap[e]||0)+1;
+  });
+  const topEmpresas = Object.entries(empMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const maxE = topEmpresas[0]?.[1] || 1;
+  const COLORS2 = ['#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe','#10b981','#34d399','#6ee7b7','#a7f3d0','#d1fae5'];
+  document.getElementById('hbarEmpresas').innerHTML = topEmpresas.map(([name, cnt], i) => `
+    <div class="hbar-item">
+      <div class="hbar-meta">
+        <span class="hbar-name">${name.length>30?name.slice(0,30)+'…':name}</span>
+        <span class="hbar-stats">${cnt} contatos</span>
+      </div>
+      <div class="hbar-track">
+        <div class="hbar-fill" style="width:${(cnt/maxE*100).toFixed(1)}%;background:${COLORS2[i%COLORS2.length]}">
+          <span class="hbar-label-in">${cnt}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ─── DEAL HELPERS ─────────────────────────────────────────────────────────────
+function dealStatus(d) {
+  if (d.is_won) return 'won';
+  if (d.is_closed) return 'lost';
+  return 'open';
+}
+function dealStageName(d) {
+  const stage = stageMap[d.opportunity_stage_id];
+  return stage ? stage.name : (d.stage_name || '—');
+}
+function dealCreatedAt(d) { return d.opportunity_created_at || d.created_at || null; }
+
+// ─── TAB 2: PIPELINE ─────────────────────────────────────────────────────────
+function renderPipeline() {
+  const open  = allDeals.filter(d => dealStatus(d) === 'open');
+  const won   = allDeals.filter(d => dealStatus(d) === 'won');
+  const lost  = allDeals.filter(d => dealStatus(d) === 'lost');
+  const convRate = allDeals.length > 0 ? (won.length / allDeals.length * 100) : 0;
+
+  document.getElementById('kpiPipeline').innerHTML =
+    kcard('Total de Deals', fmtNum(allDeals.length), 'no pipeline Route Sales', '') +
+    kcard('Em Aberto', fmtNum(open.length), 'deals ativos', 'success') +
+    kcard('Ganhos', fmtNum(won.length), 'deals fechados positivamente', 'success') +
+    kcard('Taxa de Conversão', fmtPct(convRate), `${won.length} ganhos / ${allDeals.length} total`, convRate >= 20 ? 'success' : 'warning');
+
+  // Funil de deals
+  renderFunnelDeals('funnelDeals', allDeals);
+
+  // Chart por etapa (apenas deals abertos)
+  const stageMap = {};
+  open.forEach(d => {
+    const s = dealStageName(d);
+    stageMap[s] = (stageMap[s]||0)+1;
+  });
+  const stages = Object.entries(stageMap).sort((a,b)=>b[1]-a[1]);
+  destroyChart('chartDealsEtapa');
+  const ctx = document.getElementById('chartDealsEtapa').getContext('2d');
+  chartsReg['chartDealsEtapa'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: stages.map(([k])=>k),
+      datasets: [{
+        label: 'Deals em aberto',
+        data: stages.map(([,v])=>v),
+        backgroundColor: 'rgba(37,99,235,0.7)',
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } } },
+        y: { grid: { display: false }, ticks: { font: { size: 12 } } }
+      }
+    }
+  });
+
+  // Tabela de deals
+  const tbl = document.getElementById('tableDeals');
+  if (!allDeals.length) { tbl.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:#64748b">Nenhum deal encontrado</td></tr>'; return; }
+  const sorted = [...allDeals].sort((a,b) => new Date(dealCreatedAt(b)||0) - new Date(dealCreatedAt(a)||0));
+  tbl.innerHTML = `<thead><tr>
+    <th>Nome</th><th>Empresa</th><th>Etapa</th><th>Status</th><th>Criado em</th>
+  </tr></thead><tbody>` +
+  sorted.slice(0, 100).map(d => {
+    const st = dealStatus(d);
+    const statusBadge = st === 'won' ? '<span class="badge badge-green">Ganho</span>'
+      : st === 'lost' ? '<span class="badge badge-orange">Fechado/Perdido</span>'
+      : '<span class="badge badge-blue">Aberto</span>';
+    return `<tr>
+      <td><strong>${d.name || '—'}</strong></td>
+      <td>${d.account?.name || '—'}</td>
+      <td>${dealStageName(d)}</td>
+      <td>${statusBadge}</td>
+      <td>${fmtDate(dealCreatedAt(d))}</td>
+    </tr>`;
+  }).join('') + '</tbody>';
+}
+
+function renderFunnelDeals(containerId, deals) {
+  const stageOrder = ['Novo Lead', 'Primeiro Contato', 'Qualificado', 'Reunião', 'Proposta', 'Negociação', 'Fechado'];
+  // Only open deals in funnel
+  const open = deals.filter(d => dealStatus(d) === 'open');
+  const stageMap = {};
+  open.forEach(d => {
+    const s = dealStageName(d);
+    stageMap[s] = (stageMap[s]||0)+1;
+  });
+  const entries = Object.entries(stageMap).sort((a,b) => {
+    const ia = stageOrder.indexOf(a[0]), ib = stageOrder.indexOf(b[0]);
+    if (ia === -1 && ib === -1) return b[1] - a[1];
+    if (ia === -1) return 1; if (ib === -1) return -1;
+    return ia - ib;
+  });
+  if (!entries.length) { document.getElementById(containerId).innerHTML = '<div class="empty-state"><p>Nenhum deal aberto encontrado</p></div>'; return; }
+  const maxVal = Math.max(...entries.map(([,v])=>v));
+  const COLORS = ['#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe','#dbeafe','#eff6ff'];
+  document.getElementById(containerId).innerHTML = entries.map(([name, cnt], i) => `
+    <div class="funnel-stage-row">
+      <div class="funnel-stage-name">${name}</div>
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar-fill" style="width:${(cnt/maxVal*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}">${cnt}</div>
+      </div>
+      <div class="funnel-stage-count">${cnt}</div>
+    </div>`).join('');
+}
+
+function renderFunnelSimples(containerId) {
+  renderFunnelDeals(containerId, allDeals);
+}
+
+// ─── TAB 3: SEQUÊNCIAS ───────────────────────────────────────────────────────
+function renderSequencias() {
+  if (!allSequences.length) {
+    document.getElementById('kpiSeq').innerHTML = kcard('Sequências', '0', 'nenhuma campanha encontrada', 'neutral');
+    document.getElementById('tableSeq').innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:#64748b">Nenhuma sequência encontrada</td></tr>';
+    return;
+  }
+
+  const totalContacts = allSequences.reduce((s, seq) => s + (seq.num_steps || seq.active_contacts_count || 0), 0);
+  const avgOpen  = allSequences.reduce((s, seq) => s + (seq.open_rate || 0), 0) / allSequences.length;
+  const avgReply = allSequences.reduce((s, seq) => s + (seq.reply_rate || 0), 0) / allSequences.length;
+
+  document.getElementById('kpiSeq').innerHTML =
+    kcard('Sequências', fmtNum(allSequences.length), 'campanhas configuradas', '') +
+    kcard('Contatos nas Sequências', fmtNum(totalContacts), 'total de contatos ativos', 'success') +
+    kcard('Taxa Média de Abertura', fmtPct(avgOpen * 100), 'média entre sequências', avgOpen > 0.3 ? 'success' : 'warning') +
+    kcard('Taxa Média de Resposta', fmtPct(avgReply * 100), 'média entre sequências', avgReply > 0.05 ? 'success' : 'warning');
+
+  const tbl = document.getElementById('tableSeq');
+  tbl.innerHTML = `<thead><tr>
+    <th>Sequência</th><th>Status</th><th>Contatos</th><th>Abertura</th><th>Resposta</th><th>Criada em</th>
+  </tr></thead><tbody>` +
+  allSequences.map(seq => {
+    const active = seq.active ? '<span class="badge badge-green">Ativa</span>' : '<span class="badge badge-gray">Inativa</span>';
+    const contacts = seq.active_contacts_count || seq.num_steps || 0;
+    const open  = ((seq.open_rate  || 0) * 100).toFixed(1) + '%';
+    const reply = ((seq.reply_rate || 0) * 100).toFixed(1) + '%';
+    return `<tr>
+      <td><strong>${seq.name || '—'}</strong></td>
+      <td>${active}</td>
+      <td>${contacts}</td>
+      <td>${open}</td>
+      <td>${reply}</td>
+      <td>${fmtDate(seq.created_at)}</td>
+    </tr>`;
+  }).join('') + '</tbody>';
+
+  // Chart performance
+  const labels = allSequences.map(s => s.name ? (s.name.length > 20 ? s.name.slice(0,20)+'…' : s.name) : '—');
+  const opens  = allSequences.map(s => +((s.open_rate  || 0)*100).toFixed(1));
+  const replies= allSequences.map(s => +((s.reply_rate || 0)*100).toFixed(1));
+  destroyChart('chartSeqPerf');
+  const ctx = document.getElementById('chartSeqPerf').getContext('2d');
+  chartsReg['chartSeqPerf'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Abertura (%)', data: opens,  backgroundColor: 'rgba(37,99,235,0.7)',  borderRadius: 4 },
+        { label: 'Resposta (%)', data: replies, backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 }, callback: v => v + '%' } },
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// ─── HBAR CARGOS ─────────────────────────────────────────────────────────────
+function renderHbarCargos(containerId, contacts) {
+  const cargoMap = {};
+  contacts.forEach(c => {
+    const t = (c.title || 'Sem cargo').split('\n')[0].trim();
+    cargoMap[t] = (cargoMap[t]||0)+1;
+  });
+  const top = Object.entries(cargoMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if (!top.length) { document.getElementById(containerId).innerHTML = '<div class="empty-state"><p>Sem dados</p></div>'; return; }
+  const maxV = top[0][1];
+  const COLORS = ['#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe','#10b981','#34d399','#6ee7b7'];
+  document.getElementById(containerId).innerHTML = top.map(([name, cnt], i) => `
+    <div class="hbar-item">
+      <div class="hbar-meta">
+        <span class="hbar-name">${name.length>35?name.slice(0,35)+'…':name}</span>
+        <span class="hbar-stats">${cnt}</span>
+      </div>
+      <div class="hbar-track">
+        <div class="hbar-fill" style="width:${(cnt/maxV*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}">
+          <span class="hbar-label-in">${cnt}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ─── TAB 4: CONTATOS ─────────────────────────────────────────────────────────
+function renderTabelaContatos() {
+  const search = (document.getElementById('searchContatos')?.value || '').toLowerCase();
+  const filtered = allContacts.filter(c => {
+    if (!search) return true;
+    const name = (c.name || '').toLowerCase();
+    const title = (c.title || '').toLowerCase();
+    const org = (c.organization_name || c.account?.name || '').toLowerCase();
+    return name.includes(search) || title.includes(search) || org.includes(search);
+  });
+  contatoPage = 1;
+  document.getElementById('countContatos').textContent = `${filtered.length} contatos encontrados`;
+  renderPaginaContatos(filtered, 1);
+}
+
+function renderPaginaContatos(contacts, page) {
+  const start = (page-1)*PAGE_SIZE, end = start+PAGE_SIZE;
+  const slice = contacts.slice(start, end);
+  const tbl = document.getElementById('tableContatos');
+  if (!slice.length) { tbl.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:#64748b">Nenhum contato encontrado</td></tr>'; return; }
+  tbl.innerHTML = `<thead><tr>
+    <th>Nome</th><th>Cargo</th><th>Empresa</th><th>Email</th><th>Adicionado em</th>
+  </tr></thead><tbody>` +
+  slice.map(c => {
+    const email = c.email || (c.contact_emails?.[0]?.email) || '—';
+    const org   = c.organization_name || c.account?.name || '—';
+    return `<tr>
+      <td><strong>${c.name || '—'}</strong></td>
+      <td>${c.title || '—'}</td>
+      <td>${org}</td>
+      <td style="font-size:12px">${email}</td>
+      <td>${fmtDate(c.created_at || c.contact_created_at)}</td>
+    </tr>`;
+  }).join('') + '</tbody>';
+
+  // Pagination
+  const totalPages = Math.ceil(contacts.length/PAGE_SIZE);
+  const pag = document.getElementById('paginationContatos');
+  if (totalPages <= 1) { pag.innerHTML = ''; return; }
+  pag.innerHTML = Array.from({length: Math.min(totalPages, 10)}, (_, i) => i+1).map(p => `
+    <button onclick="renderPaginaContatos(filteredContactsCache(), ${p})"
+      style="padding:5px 11px;border-radius:6px;border:1px solid var(--border);background:${p===page?'var(--primary)':'var(--card)'};color:${p===page?'#fff':'var(--text)'};font-size:12px;cursor:pointer;font-family:inherit">
+      ${p}
+    </button>`).join('');
+}
+
+function filteredContactsCache() {
+  const search = (document.getElementById('searchContatos')?.value || '').toLowerCase();
+  return allContacts.filter(c => {
+    if (!search) return true;
+    const name = (c.name || '').toLowerCase();
+    const title = (c.title || '').toLowerCase();
+    const org = (c.organization_name || c.account?.name || '').toLowerCase();
+    return name.includes(search) || title.includes(search) || org.includes(search);
+  });
+}
+
+// ─── REFRESH TIMER ───────────────────────────────────────────────────────────
+let timerSeconds = 7200;
+let timerInterval = null;
+
+function startTimer() {
+  timerSeconds = 7200;
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    const h = Math.floor(timerSeconds/3600), m = Math.floor((timerSeconds%3600)/60), s = timerSeconds%60;
+    document.getElementById('refreshCountdown').textContent =
+      `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if (timerSeconds <= 0) { clearInterval(timerInterval); forceRefresh(); }
+  }, 1000);
+}
+
+function forceRefresh() {
+  if (timerInterval) clearInterval(timerInterval);
+  setOverlay('Atualizando dados…', '');
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  init();
+}
+
+// ─── START ───────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
