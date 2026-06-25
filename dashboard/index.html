@@ -166,6 +166,30 @@ input[type="date"] { color-scheme: dark; }
 .empty-state { text-align: center; padding: 48px 20px; color: var(--text2); }
 .empty-state p { font-size: 14px; font-weight: 500; }
 
+/* CARD DE FUNIL */
+.funil-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+.funil-card-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); }
+.funil-card-title { font-size: 14px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.funil-card-title .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.funil-card-kpis { display: grid; grid-template-columns: repeat(3,1fr); gap: 0; margin-top: 12px; }
+.funil-kpi { text-align: center; padding: 8px 4px; border-right: 1px solid var(--border); }
+.funil-kpi:last-child { border-right: none; }
+.funil-kpi-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text2); margin-bottom: 4px; }
+.funil-kpi-value { font-size: 22px; font-weight: 800; color: var(--text); }
+.funil-kpi-value.green  { color: var(--success); }
+.funil-kpi-value.blue   { color: var(--primary); }
+.funil-kpi-value.yellow { color: var(--warning); }
+.funil-card-body { padding: 16px 20px; }
+.funil-etapa-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.funil-etapa-row:last-child { margin-bottom: 0; }
+.funil-etapa-nome { font-size: 12px; font-weight: 500; color: var(--text); min-width: 155px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.funil-etapa-barra { flex: 1; background: var(--bg3); border-radius: 5px; height: 26px; overflow: hidden; }
+.funil-etapa-fill { height: 100%; border-radius: 5px; display: flex; align-items: center; padding-left: 9px; font-size: 11px; font-weight: 700; color: #fff; transition: width .7s ease; min-width: 24px; }
+.funil-etapa-cnt { font-size: 12px; font-weight: 700; color: var(--text2); min-width: 28px; text-align: right; }
+.funil-conv-row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; }
+.funil-conv-label { color: var(--text2); font-weight: 500; }
+.funil-conv-value { font-weight: 800; font-size: 14px; }
+
 /* PAGINAÇÃO */
 .page-btn { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg3); color: var(--text2); font-size: 12px; cursor: pointer; font-family: inherit; transition: .15s; }
 .page-btn:hover { border-color: var(--primary); color: var(--primary); }
@@ -267,26 +291,27 @@ input[type="date"] { color-scheme: dark; }
 
     <!-- ABA 0: VISÃO GERAL -->
     <div class="tab-panel active" id="tab-0">
-      <div class="kpi-row cols-5" id="kpiGeral"></div>
 
+      <!-- KPIs resumo geral -->
+      <div class="kpi-row cols-4" id="kpiGeral"></div>
+
+      <!-- Dois funis lado a lado -->
+      <div class="chart-row cols-2" style="margin-bottom:24px">
+        <!-- PRÉ VENDAS -->
+        <div class="funil-card" id="funilPreVendas"></div>
+        <!-- VENDAS -->
+        <div class="funil-card" id="funilVendas"></div>
+      </div>
+
+      <!-- Prospecção por mês -->
       <div class="section-group">
         <div class="section-hdr">Prospecção por Mês</div>
         <div class="chart-box">
           <div class="chart-box-sub">Contatos adicionados à lista Route Sales</div>
-          <div class="chart-canvas-wrap" style="height:260px"><canvas id="chartProspMes"></canvas></div>
+          <div class="chart-canvas-wrap" style="height:240px"><canvas id="chartProspMes"></canvas></div>
         </div>
       </div>
 
-      <div class="chart-row cols-2">
-        <div>
-          <div class="section-hdr">Funil de Deals — Em Aberto</div>
-          <div class="chart-box"><div id="funnelSimples"></div></div>
-        </div>
-        <div>
-          <div class="section-hdr">Top Cargos Prospectados</div>
-          <div class="chart-box"><div id="hbarCargosGeral"></div></div>
-        </div>
-      </div>
     </div>
 
     <!-- ABA 1: PROSPECÇÃO -->
@@ -579,22 +604,33 @@ const CORES = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4
 const CORES_FUNIL = ['#3b82f6','#60a5fa','#93c5fd','#bfdbfe','#dbeafe','#eff6ff','#f8faff'];
 
 // ─── ABA 0: VISÃO GERAL ──────────────────────────────────────────────────────
+const PIPELINE_PRE   = '699355284e6cb30021f9f0dd';
+const PIPELINE_VEN   = '69c28505e83e94001d9b36a9';
+// Etapas fechadas/won a excluir do funil visual
+const CLOSED_NAMES   = ['Closed Won','Closed Lost'];
+
 function renderVisaoGeral() {
   const deals    = dealsFiltered();
   const contacts = contactsFiltered();
-  const abertos  = deals.filter(d=>dealStatus(d)==='aberto');
-  const ganhos   = deals.filter(d=>dealStatus(d)==='ganho');
   const thisMonth= getMonthKey(new Date().toISOString());
   const thisMo   = allContacts.filter(c=>getMonthKey(c.created_at)===thisMonth).length;
-  const label    = activeFunil==='todos' ? 'todos os funis' : (pipelineMap[activeFunil]||'');
+
+  // KPIs globais (4 blocos)
+  const abertos = deals.filter(d=>dealStatus(d)==='aberto');
+  const ganhos  = deals.filter(d=>dealStatus(d)==='ganho');
+  const conv    = deals.length ? (ganhos.length/deals.length*100) : 0;
 
   document.getElementById('kpiGeral').innerHTML =
-    kcard('Contatos Prospectados', fmtNum(contacts.length), 'no período filtrado', '','👥') +
-    kcard('Adicionados Este Mês',  fmtNum(thisMo),          'novos contatos', 'success','📈') +
-    kcard('Deals em Aberto',       fmtNum(abertos.length),  label, '','📂') +
-    kcard('Deals Ganhos',          fmtNum(ganhos.length),   label, 'success','🏆') +
-    kcard('Sequências Ativas',     fmtNum(allSequences.length), 'campanhas de e-mail', 'purple','✉️');
+    kcard('Contatos Prospectados', fmtNum(contacts.length),      'no período filtrado',   '',      '👥') +
+    kcard('Adicionados Este Mês',  fmtNum(thisMo),               'novos contatos',        'success','📈') +
+    kcard('Deals em Aberto',       fmtNum(abertos.length),       'nos dois funis',        '',      '📂') +
+    kcard('Taxa de Conversão',     fmtPct(conv),                 `${ganhos.length} ganhos / ${deals.length} total`, conv>=20?'success':'warning','🏆');
 
+  // Cards dos dois funis
+  renderFunilCard('funilPreVendas', PIPELINE_PRE, '#3b82f6', deals);
+  renderFunilCard('funilVendas',    PIPELINE_VEN, '#10b981', deals);
+
+  // Gráfico prospecção por mês
   const months = lastNMonths(12);
   const counts = months.map(m=>contacts.filter(c=>getMonthKey(c.created_at)===m).length);
   destroyChart('chartProspMes');
@@ -613,9 +649,92 @@ function renderVisaoGeral() {
       }
     }
   });
+}
 
-  renderFunnelBars('funnelSimples', deals);
-  renderHbarCargos('hbarCargosGeral', contacts);
+function renderFunilCard(containerId, pipelineId, cor, allDealsList) {
+  const el = document.getElementById(containerId);
+  // Filtra deals do pipeline + período/funil global
+  let deals = allDealsList.filter(d => d.opportunity_pipeline_id === pipelineId);
+
+  const nome    = pipelineMap[pipelineId] || 'Funil';
+  const total   = deals.length;
+  const abertos = deals.filter(d => dealStatus(d) === 'aberto');
+  const ganhos  = deals.filter(d => dealStatus(d) === 'ganho');
+  const perdidos= deals.filter(d => dealStatus(d) === 'perdido');
+  const conv    = total ? (ganhos.length / total * 100) : 0;
+  const convAb  = (abertos.length + ganhos.length) > 0
+    ? (ganhos.length / (abertos.length + ganhos.length) * 100) : 0;
+
+  // Agrupa etapas (só abertos, sem etapas fechadas)
+  const stageCount = {};
+  abertos.forEach(d => {
+    const s = dealStageName(d);
+    if (!CLOSED_NAMES.includes(s)) stageCount[s] = (stageCount[s]||0)+1;
+  });
+
+  // Ordem padrão das etapas
+  const ORDER_PRE = ['Novo Lead','Primeiro Contato','Contato Realizado','Reunião Agenda'];
+  const ORDER_VEN = ['Oportunidade','Oportunidade Real de Negócio','Negociação','Negócio Provável'];
+  const order = pipelineId === PIPELINE_PRE ? ORDER_PRE : ORDER_VEN;
+
+  const entries = Object.entries(stageCount).sort((a,b) => {
+    const ia = order.indexOf(a[0]), ib = order.indexOf(b[0]);
+    if(ia===-1&&ib===-1) return b[1]-a[1];
+    if(ia===-1) return 1; if(ib===-1) return -1;
+    return ia-ib;
+  });
+
+  const maxV = Math.max(...entries.map(([,v])=>v), 1);
+
+  // Gera gradiente de cores para as barras
+  const shades = ['dd','bb','99','77','55','44'].map(a => cor + a);
+
+  const etapasHTML = entries.length
+    ? entries.map(([name,cnt],i) => `
+        <div class="funil-etapa-row">
+          <div class="funil-etapa-nome" title="${name}">${name}</div>
+          <div class="funil-etapa-barra">
+            <div class="funil-etapa-fill" style="width:${(cnt/maxV*100).toFixed(1)}%;background:${shades[i]||cor+'44'}">${cnt}</div>
+          </div>
+          <div class="funil-etapa-cnt">${cnt}</div>
+        </div>`).join('')
+    : '<div class="empty-state" style="padding:20px"><p>Nenhum deal em aberto</p></div>';
+
+  // Cor da conversão
+  const convColor = conv >= 20 ? 'var(--success)' : conv >= 10 ? 'var(--warning)' : 'var(--danger)';
+
+  el.innerHTML = `
+    <div class="funil-card-header">
+      <div class="funil-card-title">
+        <span class="dot" style="background:${cor};box-shadow:0 0 6px ${cor}88"></span>
+        ${nome}
+      </div>
+      <div class="funil-card-kpis">
+        <div class="funil-kpi">
+          <div class="funil-kpi-label">Total Deals</div>
+          <div class="funil-kpi-value blue">${fmtNum(total)}</div>
+        </div>
+        <div class="funil-kpi">
+          <div class="funil-kpi-label">Em Aberto</div>
+          <div class="funil-kpi-value">${fmtNum(abertos.length)}</div>
+        </div>
+        <div class="funil-kpi">
+          <div class="funil-kpi-label">Ganhos</div>
+          <div class="funil-kpi-value green">${fmtNum(ganhos.length)}</div>
+        </div>
+      </div>
+    </div>
+    <div class="funil-card-body">
+      ${etapasHTML}
+      <div class="funil-conv-row">
+        <span class="funil-conv-label">Taxa de Conversão (ganhos / total)</span>
+        <span class="funil-conv-value" style="color:${convColor}">${fmtPct(conv)}</span>
+      </div>
+      <div class="funil-conv-row" style="margin-top:6px;padding-top:6px;border-top:none">
+        <span class="funil-conv-label">Conversão (ganhos / ativos+ganhos)</span>
+        <span class="funil-conv-value" style="color:${convColor}">${fmtPct(convAb)}</span>
+      </div>
+    </div>`;
 }
 
 // ─── ABA 1: PROSPECÇÃO ───────────────────────────────────────────────────────
