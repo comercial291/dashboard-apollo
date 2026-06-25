@@ -65,23 +65,26 @@ input[type="date"] { color-scheme: dark; }
 .fg-label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
 .fg-divider { width: 1px; height: 24px; background: var(--border); }
 
-/* BOTÕES DE FUNIL */
+/* BOTÕES DE FUNIL (só na aba Pipeline) */
 .funil-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: transparent; color: var(--text2); font-size: 12px; font-weight: 600; cursor: pointer; transition: .2s; font-family: inherit; }
 .funil-btn:hover { border-color: var(--primary); color: var(--primary); }
 .funil-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
 
+/* DROPDOWN VENDEDOR */
+.vendor-select { background: var(--bg3); border: 1.5px solid var(--border); color: var(--text); border-radius: 7px; padding: 6px 28px 6px 10px; font-size: 12px; font-family: inherit; outline: none; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a8ba8'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 9px center; min-width: 170px; transition: border-color .2s; }
+.vendor-select:focus { border-color: var(--primary); }
+.vendor-select option { background: var(--bg3); }
+
 /* BOTÕES DE PERÍODO */
-.periodo-btn { padding: 5px 11px; border-radius: 20px; border: 1.5px solid var(--border); background: transparent; color: var(--text2); font-size: 11px; font-weight: 600; cursor: pointer; transition: .2s; font-family: inherit; }
+.periodo-btn { padding: 5px 11px; border-radius: 6px; border: 1.5px solid var(--border); background: transparent; color: var(--text2); font-size: 12px; font-weight: 600; cursor: pointer; transition: .2s; font-family: inherit; }
 .periodo-btn:hover { border-color: var(--primary); color: var(--primary); }
-.periodo-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.periodo-btn.active { background: var(--warning); color: #000; border-color: var(--warning); font-weight: 700; }
 
 /* INPUTS DE DATA */
 .date-input { background: var(--bg3); border: 1.5px solid var(--border); color: var(--text); border-radius: 7px; padding: 5px 10px; font-size: 12px; font-family: inherit; outline: none; transition: border-color .2s; }
 .date-input:focus { border-color: var(--primary); }
-.btn-aplicar { background: var(--primary); color: #fff; border: none; border-radius: 7px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; transition: .2s; }
+.btn-aplicar { background: var(--primary); color: #fff; border: none; border-radius: 7px; padding: 7px 18px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; transition: .2s; }
 .btn-aplicar:hover { background: #2563eb; }
-.btn-limpar { background: transparent; color: var(--text2); border: 1.5px solid var(--border); border-radius: 7px; padding: 5px 10px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: .2s; }
-.btn-limpar:hover { border-color: var(--danger); color: var(--danger); }
 
 /* ABAS */
 .tabs { display: flex; gap: 2px; padding: 0 28px; background: var(--bg2); border-bottom: 1px solid var(--border); flex-shrink: 0; overflow-x: auto; }
@@ -241,25 +244,23 @@ input[type="date"] { color-scheme: dark; }
 
   <!-- FILTROS GLOBAIS -->
   <div class="filter-global">
-    <!-- Funil -->
+    <!-- Vendedor -->
     <div class="fg-group">
-      <span class="fg-label">Funil</span>
-      <button class="funil-btn active" onclick="setFunil('todos',this)">Todos</button>
-      <button class="funil-btn" onclick="setFunil('699355284e6cb30021f9f0dd',this)">Pré Vendas</button>
-      <button class="funil-btn" onclick="setFunil('69c28505e83e94001d9b36a9',this)">Vendas</button>
+      <span class="fg-label">Vendedor</span>
+      <select id="vendedorSelect" class="vendor-select" onchange="applyDateFilter()">
+        <option value="">Todos os vendedores</option>
+      </select>
     </div>
 
     <div class="fg-divider"></div>
 
     <!-- Período rápido -->
     <div class="fg-group">
-      <span class="fg-label">Período</span>
       <button class="periodo-btn" onclick="setQuickDate(7,this)">7d</button>
+      <button class="periodo-btn" onclick="setQuickDate(15,this)">15d</button>
       <button class="periodo-btn" onclick="setQuickDate(30,this)">30d</button>
-      <button class="periodo-btn active" onclick="setQuickDate(90,this)">90d</button>
-      <button class="periodo-btn" onclick="setQuickDate(180,this)">6m</button>
-      <button class="periodo-btn" onclick="setQuickDate(365,this)">1 ano</button>
-      <button class="periodo-btn" onclick="setQuickDate(0,this)">Tudo</button>
+      <button class="periodo-btn" onclick="setQuickDateMes(this)">Este mês</button>
+      <button class="periodo-btn" id="btnCalendario" onclick="toggleCustomDate(this)" title="Personalizado">📅</button>
     </div>
 
     <div class="fg-divider"></div>
@@ -267,14 +268,13 @@ input[type="date"] { color-scheme: dark; }
     <!-- Datas manuais -->
     <div class="fg-group">
       <span class="fg-label">De</span>
-      <input type="date" id="dateStart" class="date-input" onchange="clearQuickDate()"/>
+      <input type="date" id="dateStart" class="date-input" onchange="onDateInputChange()"/>
     </div>
     <div class="fg-group">
       <span class="fg-label">Até</span>
-      <input type="date" id="dateEnd" class="date-input" onchange="clearQuickDate()"/>
+      <input type="date" id="dateEnd" class="date-input" onchange="onDateInputChange()"/>
     </div>
     <button class="btn-aplicar" onclick="applyDateFilter()">Aplicar</button>
-    <button class="btn-limpar"  onclick="clearDateFilter()">Limpar</button>
   </div>
 
   <!-- ABAS -->
@@ -341,6 +341,13 @@ input[type="date"] { color-scheme: dark; }
 
     <!-- ABA 2: PIPELINE -->
     <div class="tab-panel" id="tab-2">
+      <!-- Filtro de funil exclusivo desta aba -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+        <span class="fg-label">Funil:</span>
+        <button class="funil-btn active" onclick="setFunil('todos',this)">Todos</button>
+        <button class="funil-btn" onclick="setFunil('699355284e6cb30021f9f0dd',this)">Pré Vendas</button>
+        <button class="funil-btn" onclick="setFunil('69c28505e83e94001d9b36a9',this)">Vendas</button>
+      </div>
       <div class="kpi-row cols-4" id="kpiPipeline"></div>
 
       <div class="section-group">
@@ -408,15 +415,18 @@ let allContacts  = [];
 let allDeals     = [];
 let allSequences = [];
 let allPipelines = [];
+let allUsers     = [];
 let stageMap     = {};
 let pipelineMap  = {};
+let userMap      = {};   // id -> nome completo
 
-let activeFunil  = 'todos';
-let dateStart    = '';   // 'YYYY-MM-DD' ou ''
-let dateEnd      = '';
-let activeTab    = 0;
-let chartsReg    = {};
-const PAGE_SIZE  = 50;
+let activeFunil    = 'todos';
+let activeVendedor = '';
+let dateStart      = '';
+let dateEnd        = '';
+let activeTab      = 0;
+let chartsReg      = {};
+const PAGE_SIZE    = 50;
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 const fmtNum  = v => (v||0).toLocaleString('pt-BR');
@@ -474,58 +484,73 @@ function inDateRange(dateStr) {
 function dealsFiltered() {
   return allDeals.filter(d => {
     if (activeFunil !== 'todos' && d.opportunity_pipeline_id !== activeFunil) return false;
-    if (dateStart || dateEnd) {
-      const dc = dealCreatedAt(d);
-      if (!inDateRange(dc)) return false;
-    }
+    if (activeVendedor && d.owner_id !== activeVendedor) return false;
+    if (!inDateRange(dealCreatedAt(d))) return false;
     return true;
   });
 }
 
 function contactsFiltered() {
-  return allContacts.filter(c => inDateRange(c.created_at));
+  return allContacts.filter(c => {
+    if (activeVendedor && c.owner_id !== activeVendedor) return false;
+    return inDateRange(c.created_at);
+  });
 }
 
-// Funil
+// Funil (usado só na aba Pipeline)
 function setFunil(id, btn) {
   activeFunil = id;
   document.querySelectorAll('.funil-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  renderAll();
+  renderPipeline();
 }
 
 // Datas rápidas
 function setQuickDate(days, btn) {
   document.querySelectorAll('.periodo-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  if (!days) { dateStart=''; dateEnd=''; }
-  else {
-    const end = new Date(), start = new Date();
-    start.setDate(end.getDate()-days);
-    dateStart = start.toISOString().slice(0,10);
-    dateEnd   = end.toISOString().slice(0,10);
-  }
+  const end = new Date(), start = new Date();
+  start.setDate(end.getDate() - days);
+  dateStart = start.toISOString().slice(0,10);
+  dateEnd   = end.toISOString().slice(0,10);
   document.getElementById('dateStart').value = dateStart;
   document.getElementById('dateEnd').value   = dateEnd;
   renderAll();
 }
 
-function clearQuickDate() {
+function setQuickDateMes(btn) {
   document.querySelectorAll('.periodo-btn').forEach(b => b.classList.remove('active'));
-}
-
-function applyDateFilter() {
-  dateStart = document.getElementById('dateStart').value || '';
-  dateEnd   = document.getElementById('dateEnd').value   || '';
-  clearQuickDate();
+  btn.classList.add('active');
+  const now   = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end   = new Date(now.getFullYear(), now.getMonth()+1, 0);
+  dateStart = start.toISOString().slice(0,10);
+  dateEnd   = end.toISOString().slice(0,10);
+  document.getElementById('dateStart').value = dateStart;
+  document.getElementById('dateEnd').value   = dateEnd;
   renderAll();
 }
 
-function clearDateFilter() {
-  dateStart=''; dateEnd='';
-  document.getElementById('dateStart').value='';
-  document.getElementById('dateEnd').value='';
+function toggleCustomDate(btn) {
+  // Ativa modo personalizado — destaca o ícone e limpa atalhos
   document.querySelectorAll('.periodo-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Foca no campo De para o usuário preencher
+  document.getElementById('dateStart').focus();
+}
+
+function onDateInputChange() {
+  // Ao alterar manualmente, desmarca botões rápidos exceto 📅
+  document.querySelectorAll('.periodo-btn').forEach(b => {
+    if (b.id !== 'btnCalendario') b.classList.remove('active');
+  });
+  document.getElementById('btnCalendario').classList.add('active');
+}
+
+function applyDateFilter() {
+  dateStart      = document.getElementById('dateStart').value || '';
+  dateEnd        = document.getElementById('dateEnd').value   || '';
+  activeVendedor = document.getElementById('vendedorSelect').value || '';
   renderAll();
 }
 
@@ -549,29 +574,37 @@ async function init() {
   await wakeServer();
   setOverlay('Buscando dados do Apollo…','Contatos, deals, pipelines e sequências');
   try {
-    const [cD,dD,sD,stD,pD] = await Promise.all([
+    const [cD,dD,sD,stD,pD,uD] = await Promise.all([
       fetchJSON('/api/contacts'), fetchJSON('/api/deals'), fetchJSON('/api/sequences'),
-      fetchJSON('/api/stages'),   fetchJSON('/api/pipelines')
+      fetchJSON('/api/stages'),   fetchJSON('/api/pipelines'), fetchJSON('/api/users')
     ]);
     allContacts  = cD.contacts || [];
     allDeals     = dD.opportunities || [];
     allSequences = sD.emailer_campaigns || [];
     allPipelines = pD.opportunity_pipelines || [];
+    allUsers     = uD.users || [];
     stageMap={};  (stD.opportunity_stages||[]).forEach(s=>{stageMap[s.id]=s;});
     pipelineMap={}; allPipelines.forEach(p=>{pipelineMap[p.id]=p.title;});
+    userMap={};   allUsers.forEach(u=>{userMap[u.id]=u.first_name+' '+u.last_name;});
+
+    // Popula dropdown de vendedores
+    const sel = document.getElementById('vendedorSelect');
+    sel.innerHTML = '<option value="">Todos os vendedores</option>' +
+      allUsers.map(u=>`<option value="${u.id}">${u.first_name} ${u.last_name}</option>`).join('');
 
     document.getElementById('lastUpdate').textContent =
       'Atualizado às '+new Date().toLocaleTimeString('pt-BR')+
       ' · '+allContacts.length+' contatos · '+allDeals.length+' deals';
 
-    // Default: últimos 90 dias
-    const hoje=new Date(), inicio=new Date();
-    inicio.setDate(hoje.getDate()-90);
-    dateStart=inicio.toISOString().slice(0,10);
-    dateEnd=hoje.toISOString().slice(0,10);
+    // Default: Este mês
+    const now=new Date();
+    const ini=new Date(now.getFullYear(),now.getMonth(),1);
+    const fim=new Date(now.getFullYear(),now.getMonth()+1,0);
+    dateStart=ini.toISOString().slice(0,10);
+    dateEnd=fim.toISOString().slice(0,10);
     document.getElementById('dateStart').value=dateStart;
     document.getElementById('dateEnd').value=dateEnd;
-    document.querySelectorAll('.periodo-btn')[2]?.classList.add('active'); // 90d
+    document.querySelectorAll('.periodo-btn').forEach((b,i)=>{if(i===3)b.classList.add('active');});
 
     renderAll();
     startTimer();

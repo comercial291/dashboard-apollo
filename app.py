@@ -135,6 +135,18 @@ def api_sequences():
     return jsonify(result)
 
 
+@app.route("/api/users")
+def api_users():
+    cached = cache_get("users")
+    if cached:
+        return jsonify(cached)
+    r = requests.get(f"{APOLLO_BASE}/users/search", headers=HEADERS, timeout=30)
+    data = r.json()
+    result = {"users": data.get("users", [])}
+    cache_set("users", result)
+    return jsonify(result)
+
+
 @app.route("/api/cache/clear")
 def clear_cache():
     _cache.clear()
