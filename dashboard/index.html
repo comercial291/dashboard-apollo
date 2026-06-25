@@ -648,11 +648,21 @@ function renderVisaoGeral() {
   const ganhos  = deals.filter(d=>dealStatus(d)==='ganho');
   const conv    = deals.length ? (ganhos.length/deals.length*100) : 0;
 
+  // Conversão geral = só funil Vendas, ano inteiro (sem filtro de data)
+  const anoAtual = new Date().getFullYear();
+  const dealsVendasAno = allDeals.filter(d => {
+    if (d.opportunity_pipeline_id !== PIPELINE_VEN) return false;
+    const dc = dealCreatedAt(d);
+    return dc && new Date(dc).getFullYear() === anoAtual;
+  });
+  const ganhoVendasAno = dealsVendasAno.filter(d => dealStatus(d) === 'ganho');
+  const convGeral = dealsVendasAno.length ? (ganhoVendasAno.length / dealsVendasAno.length * 100) : 0;
+
   document.getElementById('kpiGeral').innerHTML =
-    kcard('Contatos Prospectados', fmtNum(contacts.length),      'no período filtrado',   '',      '👥') +
-    kcard('Adicionados Este Mês',  fmtNum(thisMo),               'novos contatos',        'success','📈') +
-    kcard('Deals em Aberto',       fmtNum(abertos.length),       'nos dois funis',        '',      '📂') +
-    kcard('Taxa de Conversão',     fmtPct(conv),                 `${ganhos.length} ganhos / ${deals.length} total`, conv>=20?'success':'warning','🏆');
+    kcard('Contatos Prospectados', fmtNum(contacts.length),   'no período filtrado',             '',                       '👥') +
+    kcard('Adicionados Este Mês',  fmtNum(thisMo),            'novos contatos',                  'success',                '📈') +
+    kcard('Deals em Aberto',       fmtNum(abertos.length),    'nos dois funis',                  '',                       '📂') +
+    kcard('Conversão Route Sales', fmtPct(convGeral),         `${ganhoVendasAno.length} ganhos / ${dealsVendasAno.length} deals — Vendas ${anoAtual}`, convGeral>=20?'success':'warning','🏆');
 
   // Blocos de etapa por pipeline
   renderPipelineSection('secaoPreVendas', PIPELINE_PRE, '#3b82f6', deals);
@@ -728,6 +738,16 @@ function renderPipelineSection(containerId, pipelineId, cor, allDealsList) {
       </div>`;
   }).join('');
 
+  // Bloco de conversão do funil
+  const convColor = conv >= 20 ? '#10b981' : conv >= 10 ? '#f59e0b' : '#ef4444';
+  const blocoConversao = `
+    <div class="etapa-block" style="border-color:${convColor}44;min-width:150px">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${convColor};border-radius:10px 10px 0 0"></div>
+      <div class="etapa-block-label">Taxa de Conversão</div>
+      <div class="etapa-block-value" style="color:${convColor}">${fmtPct(conv)}</div>
+      <div class="etapa-block-pct"><span>${fmtNum(ganhos.length)}</span> ganhos de ${fmtNum(total)}</div>
+    </div>`;
+
   el.innerHTML = `
     <div class="pipeline-section-header">
       <div class="pipeline-section-title">
@@ -742,7 +762,7 @@ function renderPipelineSection(containerId, pipelineId, cor, allDealsList) {
         <span class="pipeline-stat conv">Conversão: <strong style="color:${convColor}">${fmtPct(conv)}</strong></span>
       </div>
     </div>
-    <div class="etapa-grid">${blocosEtapa}</div>`;
+    <div class="etapa-grid">${blocosEtapa}${blocoConversao}</div>`;
 }
 
 // ─── ABA 1: PROSPECÇÃO ───────────────────────────────────────────────────────
