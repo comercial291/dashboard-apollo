@@ -169,29 +169,26 @@ input[type="date"] { color-scheme: dark; }
 .empty-state { text-align: center; padding: 48px 20px; color: var(--text2); }
 .empty-state p { font-size: 14px; font-weight: 500; }
 
-/* CARD DE FUNIL */
-.funil-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
-.funil-card-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); }
-.funil-card-title { font-size: 14px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 8px; }
-.funil-card-title .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.funil-card-kpis { display: grid; grid-template-columns: repeat(3,1fr); gap: 0; margin-top: 12px; }
-.funil-kpi { text-align: center; padding: 8px 4px; border-right: 1px solid var(--border); }
-.funil-kpi:last-child { border-right: none; }
-.funil-kpi-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text2); margin-bottom: 4px; }
-.funil-kpi-value { font-size: 22px; font-weight: 800; color: var(--text); }
-.funil-kpi-value.green  { color: var(--success); }
-.funil-kpi-value.blue   { color: var(--primary); }
-.funil-kpi-value.yellow { color: var(--warning); }
-.funil-card-body { padding: 16px 20px; }
-.funil-etapa-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
-.funil-etapa-row:last-child { margin-bottom: 0; }
-.funil-etapa-nome { font-size: 12px; font-weight: 500; color: var(--text); min-width: 155px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.funil-etapa-barra { flex: 1; background: var(--bg3); border-radius: 5px; height: 26px; overflow: hidden; }
-.funil-etapa-fill { height: 100%; border-radius: 5px; display: flex; align-items: center; padding-left: 9px; font-size: 11px; font-weight: 700; color: #fff; transition: width .7s ease; min-width: 24px; }
-.funil-etapa-cnt { font-size: 12px; font-weight: 700; color: var(--text2); min-width: 28px; text-align: right; }
-.funil-conv-row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; }
-.funil-conv-label { color: var(--text2); font-weight: 500; }
-.funil-conv-value { font-weight: 800; font-size: 14px; }
+/* SEÇÃO DE FUNIL EM BLOCOS */
+.pipeline-section { margin-bottom: 24px; }
+.pipeline-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+.pipeline-section-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: var(--text); }
+.pipeline-section-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.pipeline-section-stats { display: flex; gap: 16px; align-items: center; }
+.pipeline-stat { font-size: 12px; color: var(--text2); }
+.pipeline-stat strong { color: var(--text); font-weight: 700; }
+.pipeline-stat.conv { background: var(--bg3); border-radius: 20px; padding: 4px 12px; border: 1px solid var(--border); }
+.pipeline-stat.conv strong { font-size: 14px; }
+
+/* BLOCOS DE ETAPA */
+.etapa-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+.etapa-block { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; min-width: 130px; flex: 1; position: relative; overflow: hidden; transition: transform .15s, box-shadow .15s; cursor: default; }
+.etapa-block:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.3); }
+.etapa-block::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:10px 10px 0 0; }
+.etapa-block-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--text2); margin-bottom: 8px; line-height: 1.3; }
+.etapa-block-value { font-size: 32px; font-weight: 800; color: var(--text); line-height: 1; }
+.etapa-block-pct { font-size: 11px; color: var(--text2); margin-top: 5px; font-weight: 500; }
+.etapa-block-pct span { font-weight: 700; }
 
 /* PAGINAÇÃO */
 .page-btn { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg3); color: var(--text2); font-size: 12px; cursor: pointer; font-family: inherit; transition: .15s; }
@@ -295,13 +292,11 @@ input[type="date"] { color-scheme: dark; }
       <!-- KPIs resumo geral -->
       <div class="kpi-row cols-4" id="kpiGeral"></div>
 
-      <!-- Dois funis lado a lado -->
-      <div class="chart-row cols-2" style="margin-bottom:24px">
-        <!-- PRÉ VENDAS -->
-        <div class="funil-card" id="funilPreVendas"></div>
-        <!-- VENDAS -->
-        <div class="funil-card" id="funilVendas"></div>
-      </div>
+      <!-- Blocos Pré Vendas -->
+      <div class="pipeline-section" id="secaoPreVendas"></div>
+
+      <!-- Blocos Vendas -->
+      <div class="pipeline-section" id="secaoVendas"></div>
 
       <!-- Prospecção por mês -->
       <div class="section-group">
@@ -659,9 +654,9 @@ function renderVisaoGeral() {
     kcard('Deals em Aberto',       fmtNum(abertos.length),       'nos dois funis',        '',      '📂') +
     kcard('Taxa de Conversão',     fmtPct(conv),                 `${ganhos.length} ganhos / ${deals.length} total`, conv>=20?'success':'warning','🏆');
 
-  // Cards dos dois funis
-  renderFunilCard('funilPreVendas', PIPELINE_PRE, '#3b82f6', deals);
-  renderFunilCard('funilVendas',    PIPELINE_VEN, '#10b981', deals);
+  // Blocos de etapa por pipeline
+  renderPipelineSection('secaoPreVendas', PIPELINE_PRE, '#3b82f6', deals);
+  renderPipelineSection('secaoVendas',    PIPELINE_VEN, '#10b981', deals);
 
   // Gráfico prospecção por mês
   const months = lastNMonths(12);
@@ -684,90 +679,70 @@ function renderVisaoGeral() {
   });
 }
 
-function renderFunilCard(containerId, pipelineId, cor, allDealsList) {
-  const el = document.getElementById(containerId);
-  // Filtra deals do pipeline + período/funil global
-  let deals = allDealsList.filter(d => d.opportunity_pipeline_id === pipelineId);
+function renderPipelineSection(containerId, pipelineId, cor, allDealsList) {
+  const el   = document.getElementById(containerId);
+  const deals = allDealsList.filter(d => d.opportunity_pipeline_id === pipelineId);
+  const nome  = pipelineMap[pipelineId] || 'Funil';
 
-  const nome    = pipelineMap[pipelineId] || 'Funil';
-  const total   = deals.length;
   const abertos = deals.filter(d => dealStatus(d) === 'aberto');
   const ganhos  = deals.filter(d => dealStatus(d) === 'ganho');
   const perdidos= deals.filter(d => dealStatus(d) === 'perdido');
+  const total   = deals.length;
   const conv    = total ? (ganhos.length / total * 100) : 0;
-  const convAb  = (abertos.length + ganhos.length) > 0
-    ? (ganhos.length / (abertos.length + ganhos.length) * 100) : 0;
+  const convColor = conv >= 20 ? 'var(--success)' : conv >= 10 ? 'var(--warning)' : '#ef4444';
 
-  // Agrupa etapas (só abertos, sem etapas fechadas)
+  // Ordem das etapas por pipeline
+  const ORDER_PRE = ['Novo Lead','Primeiro Contato','Contato Realizado','Reunião Agenda'];
+  const ORDER_VEN = ['Oportunidade','Oportunidade Real de Negócio','Negociação','Negócio Provável'];
+  const order = pipelineId === PIPELINE_PRE ? ORDER_PRE : ORDER_VEN;
+
+  // Conta deals abertos por etapa
   const stageCount = {};
   abertos.forEach(d => {
     const s = dealStageName(d);
     if (!CLOSED_NAMES.includes(s)) stageCount[s] = (stageCount[s]||0)+1;
   });
 
-  // Ordem padrão das etapas
-  const ORDER_PRE = ['Novo Lead','Primeiro Contato','Contato Realizado','Reunião Agenda'];
-  const ORDER_VEN = ['Oportunidade','Oportunidade Real de Negócio','Negociação','Negócio Provável'];
-  const order = pipelineId === PIPELINE_PRE ? ORDER_PRE : ORDER_VEN;
-
-  const entries = Object.entries(stageCount).sort((a,b) => {
-    const ia = order.indexOf(a[0]), ib = order.indexOf(b[0]);
-    if(ia===-1&&ib===-1) return b[1]-a[1];
-    if(ia===-1) return 1; if(ib===-1) return -1;
-    return ia-ib;
+  // Ordena etapas e inclui as da ordem mesmo que estejam com 0
+  const etapas = order.map(name => [name, stageCount[name]||0]);
+  // Adiciona etapas extras não previstas na ordem
+  Object.entries(stageCount).forEach(([name, cnt]) => {
+    if (!order.includes(name) && !CLOSED_NAMES.includes(name)) etapas.push([name, cnt]);
   });
 
-  const maxV = Math.max(...entries.map(([,v])=>v), 1);
+  const totalAbertos = abertos.length || 1;
 
-  // Gera gradiente de cores para as barras
-  const shades = ['dd','bb','99','77','55','44'].map(a => cor + a);
+  // Cores progressivas para cada bloco
+  const corBase   = cor;
+  const corGanho  = '#10b981';
+  const corPerdido= '#ef4444';
 
-  const etapasHTML = entries.length
-    ? entries.map(([name,cnt],i) => `
-        <div class="funil-etapa-row">
-          <div class="funil-etapa-nome" title="${name}">${name}</div>
-          <div class="funil-etapa-barra">
-            <div class="funil-etapa-fill" style="width:${(cnt/maxV*100).toFixed(1)}%;background:${shades[i]||cor+'44'}">${cnt}</div>
-          </div>
-          <div class="funil-etapa-cnt">${cnt}</div>
-        </div>`).join('')
-    : '<div class="empty-state" style="padding:20px"><p>Nenhum deal em aberto</p></div>';
-
-  // Cor da conversão
-  const convColor = conv >= 20 ? 'var(--success)' : conv >= 10 ? 'var(--warning)' : 'var(--danger)';
+  const blocosEtapa = etapas.map(([name, cnt]) => {
+    const pct = ((cnt / totalAbertos) * 100).toFixed(0);
+    return `
+      <div class="etapa-block" style="border-color:${corBase}33">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${corBase};border-radius:10px 10px 0 0;opacity:${cnt>0?1:0.2}"></div>
+        <div class="etapa-block-label">${name}</div>
+        <div class="etapa-block-value" style="color:${cnt>0?corBase:'var(--text3)'}">${fmtNum(cnt)}</div>
+        <div class="etapa-block-pct">${cnt>0?`<span>${pct}%</span> dos abertos`:'—'}</div>
+      </div>`;
+  }).join('');
 
   el.innerHTML = `
-    <div class="funil-card-header">
-      <div class="funil-card-title">
-        <span class="dot" style="background:${cor};box-shadow:0 0 6px ${cor}88"></span>
+    <div class="pipeline-section-header">
+      <div class="pipeline-section-title">
+        <span class="pipeline-section-dot" style="background:${corBase};box-shadow:0 0 8px ${corBase}88"></span>
         ${nome}
       </div>
-      <div class="funil-card-kpis">
-        <div class="funil-kpi">
-          <div class="funil-kpi-label">Total Deals</div>
-          <div class="funil-kpi-value blue">${fmtNum(total)}</div>
-        </div>
-        <div class="funil-kpi">
-          <div class="funil-kpi-label">Em Aberto</div>
-          <div class="funil-kpi-value">${fmtNum(abertos.length)}</div>
-        </div>
-        <div class="funil-kpi">
-          <div class="funil-kpi-label">Ganhos</div>
-          <div class="funil-kpi-value green">${fmtNum(ganhos.length)}</div>
-        </div>
+      <div class="pipeline-section-stats">
+        <span class="pipeline-stat">Total: <strong>${fmtNum(total)}</strong></span>
+        <span class="pipeline-stat">Em aberto: <strong>${fmtNum(abertos.length)}</strong></span>
+        <span class="pipeline-stat">Ganhos: <strong style="color:${corGanho}">${fmtNum(ganhos.length)}</strong></span>
+        <span class="pipeline-stat">Perdidos: <strong style="color:${corPerdido}">${fmtNum(perdidos.length)}</strong></span>
+        <span class="pipeline-stat conv">Conversão: <strong style="color:${convColor}">${fmtPct(conv)}</strong></span>
       </div>
     </div>
-    <div class="funil-card-body">
-      ${etapasHTML}
-      <div class="funil-conv-row">
-        <span class="funil-conv-label">Taxa de Conversão (ganhos / total)</span>
-        <span class="funil-conv-value" style="color:${convColor}">${fmtPct(conv)}</span>
-      </div>
-      <div class="funil-conv-row" style="margin-top:6px;padding-top:6px;border-top:none">
-        <span class="funil-conv-label">Conversão (ganhos / ativos+ganhos)</span>
-        <span class="funil-conv-value" style="color:${convColor}">${fmtPct(convAb)}</span>
-      </div>
-    </div>`;
+    <div class="etapa-grid">${blocosEtapa}</div>`;
 }
 
 // ─── ABA 1: PROSPECÇÃO ───────────────────────────────────────────────────────
