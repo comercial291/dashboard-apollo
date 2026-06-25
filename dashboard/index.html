@@ -698,8 +698,7 @@ function renderPipelineSection(containerId, pipelineId, cor, allDealsList) {
   const ganhos  = deals.filter(d => dealStatus(d) === 'ganho');
   const perdidos= deals.filter(d => dealStatus(d) === 'perdido');
   const total   = deals.length;
-  const conv    = total ? (ganhos.length / total * 100) : 0;
-  const convColor = conv >= 20 ? 'var(--success)' : conv >= 10 ? 'var(--warning)' : '#ef4444';
+  const conv     = total ? (ganhos.length / total * 100) : 0;
 
   // Ordem das etapas por pipeline
   const ORDER_PRE = ['Novo Lead','Primeiro Contato','Contato Realizado','Reunião Agenda'];
